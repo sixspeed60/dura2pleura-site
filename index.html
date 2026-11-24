@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dura2Pleura</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<body><main>
+<h1>Dura2Pleura</h1><p class="sub">Otolaryngology board review: reading, Learn lessons, cases and questions.</p>
+
+<!-- Shown after the sign-up confirmation link -->
+<div id="confirmed" class="card hide"><h2>Email confirmed</h2>
+<p>Your account is ready. Go back to the Dura2Pleura app and sign in with your email and password.</p></div>
+
+<!-- Shown after a password-reset link -->
+<div id="reset" class="card hide"><h2>Choose a new password</h2>
+<form id="resetForm"><label for="pw1">New password</label><input id="pw1" type="password" minlength="8" required autocomplete="new-password">
+<label for="pw2">Repeat it</label><input id="pw2" type="password" minlength="8" required autocomplete="new-password">
+<button type="submit">Save password</button><p id="resetMsg"></p></form></div>
+
+<!-- Shown when a link has expired or failed -->
+<div id="failed" class="card hide"><h2>That link didn't work</h2><p id="failedMsg">It may have expired or already been used. In the app, request a new email and use the newest link.</p></div>
+
+<div id="about" class="card"><h2>Private beta</h2>
+<p>Dura2Pleura is in a private beta for otolaryngology residents. The app is available to invited testers only.</p>
+<p>Questions or problems: see <a href="support.html">Support</a>.</p></div>
+
+<footer>Educational use only. Not a substitute for clinical judgment.<br><a href="support.html">Support</a></footer>
+</main>
+<script>
+const SUPABASE_URL = "https://vyyuqdaytwiceojzjjou.supabase.co";
+const SUPABASE_KEY = "sb_publishable_tKmLFgLsOLfnR-FG84qvKg_Li6WwyzF"; // public key, safe to publish
+const show = id => { for (const s of ["confirmed","reset","failed"]) document.getElementById(s).classList.toggle("hide", s !== id); };
+const hash = new URLSearchParams(location.hash.slice(1)), query = new URLSearchParams(location.search);
+const type = hash.get("type") || query.get("type");
+const error = hash.get("error_description") || query.get("error_description");
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { detectSessionInUrl: true, persistSession: false, flowType: "implicit" } });
+if (error) { show("failed"); document.getElementById("failedMsg").textContent = error.replace(/\+/g," ") + ". In the app, request a new email and use the newest link."; }
+else if (type === "recovery") show("reset");
+else if (type === "signup" || type === "email_change" || type === "invite" || type === "magiclink") show("confirmed");
+sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") show("reset"); });
+document.getElementById("resetForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = document.getElementById("resetMsg"), a = pw1.value, b = pw2.value;
+  if (a !== b) { msg.className = "err"; msg.textContent = "The two passwords don't match."; return; }
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) { msg.className = "err"; msg.textContent = error.message; }
+  else { msg.className = ""; msg.textContent = "Saved. Go back to the app and sign in with your new password."; e.target.querySelector("button").disabled = true; }
+  history.replaceState(null, "", location.pathname);
+});
+if (location.hash) history.replaceState(null, "", location.pathname + (type ? "?type=" + type : ""));
+</script>
+</body></html>
